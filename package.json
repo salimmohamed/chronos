@@ -1,0 +1,45 @@
+{
+  "name": "chronos",
+  "version": "0.1.0",
+  "description": "Minimal focus timer for macOS",
+  "main": "./out/main/index.js",
+  "author": "Salim Mohamed",
+  "license": "MIT",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "typecheck": "tsc --noEmit",
+    "package": "electron-vite build && electron-builder --mac",
+    "package:dmg": "electron-vite build && electron-builder --mac dmg"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.0.0",
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.4.0",
+    "electron": "^35.0.0",
+    "electron-builder": "^25.0.0",
+    "electron-vite": "^3.0.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.0"
+  },
+  "build": {
+    "appId": "com.salimmohamed.chronos",
+    "productName": "Chronos",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": "dmg",
+      "hardenedRuntime": true
+    },
+    "directories": {
+      "output": "dist"
+    }
+  }
+}
