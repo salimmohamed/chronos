@@ -11,14 +11,8 @@ const api = {
   loadConfig: () => ipcRenderer.invoke("config:load"),
   saveConfig: (config: unknown) => ipcRenderer.invoke("config:save", config),
 
-  startBreak: (duration: number) => ipcRenderer.send("break:start", duration),
-  endBreak: () => ipcRenderer.send("break:end"),
-  dismissBreak: () => ipcRenderer.send("break:dismiss"),
-
-  onBreakDismissed: (cb: () => void) => {
-    ipcRenderer.on("break:dismissed", cb);
-    return () => ipcRenderer.removeListener("break:dismissed", cb);
-  },
+  enterFullscreen: () => ipcRenderer.send("window:enter-fullscreen"),
+  exitFullscreen: () => ipcRenderer.send("window:exit-fullscreen"),
 };
 
 contextBridge.exposeInMainWorld("api", api);

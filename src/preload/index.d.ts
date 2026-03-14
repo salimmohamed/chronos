@@ -13,11 +13,8 @@ declare global {
       loadConfig: () => Promise<TimerConfig | null>;
       saveConfig: (config: TimerConfig) => Promise<void>;
 
-      startBreak: (duration: number) => void;
-      endBreak: () => void;
-      dismissBreak: () => void;
-
-      onBreakDismissed: (cb: () => void) => () => void;
+      enterFullscreen: () => void;
+      exitFullscreen: () => void;
     };
   }
 }

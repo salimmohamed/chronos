@@ -1,6 +1,6 @@
 export type TimerMode = "focus" | "break";
 export type TimerState = "idle" | "running" | "paused" | "overtime" | "logging";
-export type View = "timer" | "log" | "history";
+export type View = "timer" | "log" | "history" | "break-idle" | "break-running";
 
 export interface TimerConfig {
   focusDuration: number; // minutes

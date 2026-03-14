@@ -6,6 +6,7 @@ interface UseStoreReturn {
   loading: boolean;
   saveSession: (session: Session) => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
+  reload: (sessions: Session[]) => void;
 }
 
 export function useStore(): UseStoreReturn {
@@ -29,5 +30,9 @@ export function useStore(): UseStoreReturn {
     setSessions((prev) => prev.filter((s) => s.id !== id));
   }, []);
 
-  return { sessions, loading, saveSession, deleteSession };
+  const reload = useCallback((data: Session[]) => {
+    setSessions(data);
+  }, []);
+
+  return { sessions, loading, saveSession, deleteSession, reload };
 }

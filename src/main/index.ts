@@ -7,18 +7,22 @@ import {
   Menu,
   Notification,
   nativeImage,
+  screen,
   Tray,
 } from "electron";
 import { deleteSession, readConfig, readSessions, saveSession, writeConfig } from "./storage";
 
 let mainWindow: BrowserWindow | null = null;
-let breakWindow: BrowserWindow | null = null;
+let overlayWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
+
+const NORMAL_WIDTH = 400;
+const NORMAL_HEIGHT = 600;
 
 function createMainWindow(): BrowserWindow {
   const win = new BrowserWindow({
-    width: 400,
-    height: 600,
+    width: NORMAL_WIDTH,
+    height: NORMAL_HEIGHT,
     resizable: false,
     titleBarStyle: "hiddenInset",
     backgroundColor: "#0a0a0a",
@@ -33,7 +37,7 @@ function createMainWindow(): BrowserWindow {
   if (process.env.ELECTRON_RENDERER_URL) {
     win.loadURL(process.env.ELECTRON_RENDERER_URL);
   } else {
-    win.loadFile(path.join(__dirname, "../renderer/main/index.html"));
+    win.loadFile(path.join(__dirname, "../renderer/index.html"));
   }
 
   win.once("ready-to-show", () => win.show());
@@ -41,13 +45,29 @@ function createMainWindow(): BrowserWindow {
   return win;
 }
 
-function createBreakWindow(duration: number): BrowserWindow {
-  const win = new BrowserWindow({
-    fullscreen: true,
-    alwaysOnTop: true,
+function showOverlay(): void {
+  if (overlayWindow && !overlayWindow.isDestroyed()) {
+    overlayWindow.close();
+  }
+
+  const display = screen.getPrimaryDisplay();
+  const { width, height } = display.size;
+
+  overlayWindow = new BrowserWindow({
+    x: 0,
+    y: 0,
+    width,
+    height,
     frame: false,
     backgroundColor: "#0a0a0a",
+    hasShadow: false,
+    enableLargerThanScreen: true,
     skipTaskbar: true,
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    focusable: true,
+    titleBarStyle: "default",
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.js"),
       contextIsolation: true,
@@ -55,15 +75,32 @@ function createBreakWindow(duration: number): BrowserWindow {
     },
   });
 
+  overlayWindow.setAlwaysOnTop(true, "screen-saver");
+  overlayWindow.setVisibleOnAllWorkspaces(true);
+
+  // Load the same renderer — it will check for overlay mode via IPC
   if (process.env.ELECTRON_RENDERER_URL) {
-    win.loadURL(`${process.env.ELECTRON_RENDERER_URL}/break.html?duration=${duration}`);
+    overlayWindow.loadURL(`${process.env.ELECTRON_RENDERER_URL}?overlay=true`);
   } else {
-    win.loadFile(path.join(__dirname, "../renderer/break/index.html"), {
-      query: { duration: String(duration) },
+    overlayWindow.loadFile(path.join(__dirname, "../renderer/index.html"), {
+      query: { overlay: "true" },
     });
   }
 
-  return win;
+  // Hide main window so only the overlay is visible
+  mainWindow?.hide();
+
+  overlayWindow.on("closed", () => {
+    overlayWindow = null;
+    mainWindow?.show();
+    mainWindow?.focus();
+  });
+}
+
+function closeOverlay(): void {
+  if (overlayWindow && !overlayWindow.isDestroyed()) {
+    overlayWindow.close();
+  }
 }
 
 function createTray(): Tray {
@@ -105,27 +142,8 @@ function registerIPC(): void {
   ipcMain.handle("config:load", () => readConfig());
   ipcMain.handle("config:save", (_, config) => writeConfig(config));
 
-  ipcMain.on("break:start", (_, duration: number) => {
-    if (breakWindow) {
-      breakWindow.close();
-    }
-    breakWindow = createBreakWindow(duration);
-  });
-
-  ipcMain.on("break:end", () => {
-    if (breakWindow) {
-      breakWindow.close();
-      breakWindow = null;
-    }
-  });
-
-  ipcMain.on("break:dismiss", () => {
-    if (breakWindow) {
-      breakWindow.close();
-      breakWindow = null;
-    }
-    mainWindow?.webContents.send("break:dismissed");
-  });
+  ipcMain.on("window:enter-fullscreen", () => showOverlay());
+  ipcMain.on("window:exit-fullscreen", () => closeOverlay());
 }
 
 app.whenReady().then(() => {
@@ -150,9 +168,9 @@ app.on("window-all-closed", () => {
 });
 
 app.on("activate", () => {
-  if (!mainWindow) {
+  if (!mainWindow || mainWindow.isDestroyed()) {
     mainWindow = createMainWindow();
-  } else {
+  } else if (!overlayWindow) {
     mainWindow.show();
   }
 });
